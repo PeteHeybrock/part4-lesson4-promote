@@ -11,7 +11,7 @@ jobs:
             --template-file bucket.yml \
             --stack-name "wf-${CIRCLE_WORKFLOW_ID:0:7}" \
             --parameter-overrides NAME="wf-${CIRCLE_WORKFLOW_ID:0:7}"
-      - run: aws s3 sync . s3://"${CIRCLE_WORKFLOW_ID}" --delete
+      - run: aws s3 sync . s3://"wf-${CIRCLE_WORKFLOW_ID:0:7}" --delete
 
   promote_to_production:
     docker:

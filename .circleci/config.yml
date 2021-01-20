@@ -1,6 +1,20 @@
 version: 2.1
 
 jobs:
+  get_last_deployment_id:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - run: |
+          aws cloudformation \
+          list-exports --query "Exports[?Name==\`PipelineID\`].Value" \
+          --no-paginate --output text >> ~/oldPipelineId.txt
+          cat ~/oldPipelineId.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - oldPipelineId.txt  
+
   create_and_deploy_front_end:
     docker:
       - image: amazon/aws-cli
@@ -22,12 +36,26 @@ jobs:
           aws cloudformation deploy \
             --template-file cloudfront.yml \
             --stack-name cloudfront \
-            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}"
+            --parameter-overrides PipelineID="wf-${CIRCLE_WORKFLOW_ID:0:7}"
+
+  clean_up_old_front_end:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run: |
+          oldPipelineId=$(cat oldPipelineId.txt)
+          aws s3 rm s3://${oldPipelineID} --recursive
+          aws cloudformation delete-stack --stack-name ${oldPipelineID}
 
 workflows:
-  default:
+  my_workflow:
     jobs:
-      - create_and_deploy_front_end
+      - get_last_deployment_id
+      - create_and_deploy_front_end:
+          requires: get_last_deployment_id
       - promote_to_production:
-          requires: [create_and_deploy_front_end]
-
+          requires: create_and_deploy_front_end
+      - clean_up_old_front_end:
+          requires: promote_to_production

@@ -11,7 +11,6 @@ jobs:
           aws cloudformation \
           list-exports --query "Exports[?Name==\`PipelineID\`].Value" \
           --no-paginate --output text >> ~/oldPipelineId.txt
-          cat ~/oldPipelineId.txt
       - persist_to_workspace:
           root: ~/
           paths:
@@ -27,7 +26,7 @@ jobs:
             --template-file bucket.yml \
             --stack-name "wf-${CIRCLE_WORKFLOW_ID:0:7}" \
             --parameter-overrides NAME="wf-${CIRCLE_WORKFLOW_ID:0:7}"
-      - run: aws s3 sync . s3://"wf-${CIRCLE_WORKFLOW_ID:0:7}" --delete
+      - run: aws s3 sync . s3://"wf-${CIRCLE_WORKFLOW_ID:0:7}" --delete --exclude "*" --include "*.html"
 
   promote_to_production:
     docker:
@@ -50,7 +49,6 @@ jobs:
           at: ~/
       - run: |
           oldPipelineId=$(cat ~/oldPipelineId.txt)
-          echo ${oldPipeLineId}
           aws s3 rm s3://${oldPipelineId} --recursive
           aws cloudformation delete-stack --stack-name ${oldPipelineId}
 

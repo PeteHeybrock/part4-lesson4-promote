@@ -49,7 +49,7 @@ jobs:
       - attach_workspace:
           at: ~/
       - run: |
-          oldPipelineId=$(cat oldPipelineId.txt)
+          oldPipelineId=$(cat ~/oldPipelineId.txt)
           aws s3 rm s3://${oldPipelineID} --recursive
           aws cloudformation delete-stack --stack-name ${oldPipelineID}
 
